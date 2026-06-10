@@ -30,9 +30,7 @@ async function watchCollection({ db, collectionName, pipeline, label, onInsert }
         options.resumeAfter = resumeTokens[collectionName];
         log(label, `Resuming from token: ${JSON.stringify(resumeTokens[collectionName])}`);
       } else {
-        // Start from now — don't replay old events on first start
-        options.startAtOperationTime = new Date();
-        log(label, `Starting from current time (no resume token)`);
+        log(label, `Starting fresh (no resume token)`);
       }
 
       const changeStream = collection.watch(pipeline, options);

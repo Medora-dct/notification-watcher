@@ -4,7 +4,7 @@ const { buildFeedEmailHtml, buildTaskEmailHtml } = require('./emailTemplate');
 const sesClient = new SESClient({ region: process.env.AWS_REGION || 'eu-central-1' });
 
 const SES_FROM_EMAIL = process.env.SES_FROM_EMAIL;
-const SES_FROM_NAME = process.env.SES_FROM_NAME || 'MEDORA Notification';
+const SES_FROM_NAME = process.env.SES_FROM_NAME || 'MEDORA notification';
 const APP_URL = process.env.APP_URL || 'https://qa.medoradct.com';
 const SES_CONFIG_SET = process.env.SES_CONFIG_SET || 'medora-email-tracking';
 
@@ -35,7 +35,7 @@ async function sendFeedEmail(toEmail, firstName, feed, visitContext = {}) {
   const { message, module: moduleName } = feed;
   const messageId = await sendEmail({
     toEmail,
-    subject: `MEDORA | New Update`,
+    subject: `[MEDORA] New notification: ${moduleName}`,
     htmlBody: buildFeedEmailHtml(firstName, feed, visitContext),
     textBody: `Dear ${firstName},\n\nA new update has been posted for you on the MEDORA platform.\n\n${message}\n\nView it at: ${APP_URL}/notification`,
     emailType: 'feed-notification',

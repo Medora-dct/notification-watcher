@@ -3,6 +3,12 @@ const { sendFeedEmail, sendTaskEmail } = require('./mailer');
 
 const RECONNECT_DELAY_MS = 5000;
 
+// In-memory resume token store per collection
+const resumeTokens = {};
+
+// Processing lock — prevents same document being processed twice (race condition)
+const processingLocks = new Set();
+
 function log(label, msg) {
   console.log(`[${new Date().toISOString()}] [${label}] ${msg}`);
 }
@@ -17,32 +23,58 @@ async function watchCollection({ db, collectionName, pipeline, label, onInsert }
   const connect = async () => {
     try {
       const collection = db.collection(collectionName);
-      const changeStream = collection.watch(pipeline, { fullDocument: 'updateLookup' });
+
+      // Resume from last known position if available
+      const options = { fullDocument: 'updateLookup' };
+      if (resumeTokens[collectionName]) {
+        options.resumeAfter = resumeTokens[collectionName];
+        log(label, `Resuming from token: ${JSON.stringify(resumeTokens[collectionName])}`);
+      } else {
+        // Start from now — don't replay old events on first start
+        options.startAtOperationTime = new Date();
+        log(label, `Starting from current time (no resume token)`);
+      }
+
+      const changeStream = collection.watch(pipeline, options);
 
       log(label, `Listening on ${collectionName} collection...`);
 
       changeStream.on('change', async (change) => {
+        const docId = change.fullDocument?._id?.toString();
+
+        // Skip if already being processed (race condition guard)
+        if (docId && processingLocks.has(docId)) {
+          warn(label, `Duplicate event detected for docId: ${docId} — skipping`);
+          return;
+        }
+
+        if (docId) processingLocks.add(docId);
+
         try {
+          // Save resume token before processing
+          resumeTokens[collectionName] = change._id;
           await onInsert(change.fullDocument);
         } catch (err) {
           error(label, 'Error processing event:', err);
+        } finally {
+          // Always release lock after processing
+          if (docId) processingLocks.delete(docId);
         }
       });
 
       changeStream.on('error', (err) => {
         error(label, 'Stream error:', err.message);
-        changeStream.close();
+        process.exit(1);
       });
 
       changeStream.on('close', () => {
-        warn(label, `Stream closed. Reconnecting in ${RECONNECT_DELAY_MS / 1000}s...`);
-        setTimeout(connect, RECONNECT_DELAY_MS);
+        warn(label, `Stream closed. Exiting for clean Kubernetes restart...`);
+        process.exit(1);
       });
 
     } catch (err) {
       error(label, 'Failed to start stream:', err.message);
-      warn(label, `Retrying in ${RECONNECT_DELAY_MS / 1000}s...`);
-      setTimeout(connect, RECONNECT_DELAY_MS);
+      process.exit(1);
     }
   };
 
@@ -75,7 +107,6 @@ async function startFeedsWatcher(db) {
         return;
       }
 
-      // Fetch visitContext (profileId + protocolId) in parallel with email send prep
       const visitContext = await getVisitContext(doc.metaData);
       log('Feeds', `Visit context — protocolId: ${visitContext.protocolId} | profileId: ${visitContext.profileId}`);
 

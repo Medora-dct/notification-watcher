@@ -57,7 +57,7 @@ spec:
             - name: APP_URL
               value: "https://qa.medoradct.com"
             - name: SES_FROM_NAME
-              value: "MEDORA Notification"
+              value: "MEDORA notification"
           resources:
             requests:
               memory: "128Mi"

@@ -9,14 +9,6 @@ function generateUnsubscribeUrl(userId) {
   return `${LAMBDA_URL}/unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
-function smartCapitalize(str) {
-  if (!str) return str;
-  return str.replace(/\w+/g, (word) => {
-    if (word === word.toUpperCase()) return word;
-    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-  });
-}
-
 // ─── Shared layout wrapper ────────────────────────────────────────────────────
 // All emails share this outer shell. Pass in the inner content block.
 function wrapLayout({ firstName, innerContent, unsubscribeUrl, showUnsubscribe = true }) {
@@ -156,7 +148,7 @@ function buildFeedEmailHtml(firstName, feed, visitContext = {}) {
 
         <div style="background-color:#f5f8fa;border:1px solid #dce4ed;border-radius:10px;padding:20px 24px;margin-bottom:28px;">
           <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:#7a92a8;font-weight:500;margin:0 0 6px 0;">Notification summary</p>
-          <p style="font-size:15px;font-weight:600;color:#0f1f2e;margin:0 0 14px 0;">${smartCapitalize(message)}</p>
+          <p style="font-size:15px;font-weight:600;color:#0f1f2e;margin:0 0 14px 0;">${message}</p>
           <div style="height:1px;background-color:#dce4ed;margin:0 0 14px 0;"></div>
           <table border="0" cellpadding="0" cellspacing="0" width="100%">
             <tr>

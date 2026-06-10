@@ -1,0 +1,14 @@
+{
+  "name": "notification-watcher",
+  "version": "2.0.0",
+  "description": "MongoDB Change Stream watcher for Medora — sends email alerts via AWS SES",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.600.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.7.0"
+  }
+}

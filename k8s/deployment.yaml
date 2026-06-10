@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: notification-watcher-sa
+  namespace: hn4u-staging
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::337756366934:role/notification-watcher-role
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-watcher
+  namespace: hn4u-staging
+  labels:
+    app: notification-watcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-watcher
+  template:
+    metadata:
+      labels:
+        app: notification-watcher
+    spec:
+      serviceAccountName: notification-watcher-sa
+      containers:
+        - name: notification-watcher
+          image: 337756366934.dkr.ecr.eu-central-1.amazonaws.com/notification-watcher-stg:latest
+          imagePullPolicy: Always
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: notification-watcher-secret
+                  key: MONGO_URI
+            - name: SES_FROM_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-watcher-secret
+                  key: SES_FROM_EMAIL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: notification-watcher-secret
+                  key: JWT_SECRET
+            - name: LAMBDA_URL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-watcher-secret
+                  key: LAMBDA_URL
+            - name: DB_NAME
+              value: "test"
+            - name: AWS_REGION
+              value: "eu-central-1"
+            - name: APP_URL
+              value: "https://qa.medoradct.com"
+            - name: SES_FROM_NAME
+              value: "MEDORA Notification"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
